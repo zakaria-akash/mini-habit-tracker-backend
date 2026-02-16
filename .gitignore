@@ -1,32 +1,96 @@
-# Dependencies
+
+# ------------------------------
+# Node / Runtime
+# ------------------------------
 node_modules/
+# Keep lock files tracked for reproducible installs:
+# (Do NOT ignore package-lock.json / yarn.lock / pnpm-lock.yaml)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
 
-# Environment variables
-.env
-.env.*
+# Process IDs & runtime artifacts
+pids/
+*.pid
+*.seed
+*.pid.lock
 
-# Logs
-logs/
-*.log
+# Debug & REPL history
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+node-repl-history
 
-# OS files
-Thumbs.db
-.DS_Store
+# Cache
+.npm/
+.yarn/
+.pnpm-store/
+.eslintcache
+.cache/
+.tmp/
 
-# IDE / Editor
-.vscode/
-.idea/
+# Coverage & test outputs
+coverage/
+.nyc_output/
+reports/
 
-# AI tools
-.claude/
-.gemini/
-.cursor/
-.copilot/
-
-# Build output
+# Build outputs (if any)
 dist/
 build/
 
-# Coverage
-coverage/
+# ------------------------------
+# Environment & Secrets
+# ------------------------------
+# Never commit secrets. Keep example only.
+.env
+.env.*
+!.env.example
+
+# ------------------------------
+# Logs
+# ------------------------------
+logs/
+log/
+*.log
+
+# ------------------------------
+# Editors & OS junk
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.vscode/
+.idea/
+
+# Swap files
+*.swp
+*.swo
+
+# ------------------------------
+# Redis & Database dumps (if created in repo dir)
+# ------------------------------
+# Redis persistence files
+dump.rdb
+appendonly.aof
+*.rdb
+*.aof
+
+# Mongo export dumps (avoid storing DB files in repo)
+*.bson
+*.wt
+
+# ------------------------------
+# Temporary data folders (optional)
+# Uncomment if you create local storage dirs in the project
+# ------------------------------
+# uploads/
+# storage/
+# temp/
+# tmp/
+
+# ------------------------------
+# Mailer templates/build (if generated)
+# ------------------------------
+# mail_build/
