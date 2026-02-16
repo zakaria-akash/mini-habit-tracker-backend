@@ -1,8 +1,10 @@
 // Import Express to create a modular, mountable route handler
 import express from 'express';
 
-// Import bcrypt for hashing and comparing passwords securely
-import bcrypt from 'bcrypt';
+// Import bcryptjs for hashing and comparing passwords securely.
+// bcryptjs is a pure JavaScript implementation of bcrypt (no native C++ compilation required),
+// making it easier to install across platforms while providing the same API.
+import bcrypt from 'bcryptjs';
 
 // Import jsonwebtoken for creating and verifying JWT authentication tokens
 import jwt from 'jsonwebtoken';
@@ -68,6 +70,9 @@ function cookieOptions() {
 // Request body: { email: string, password: string }
 // Success response: 201 { message: 'User created' }
 // Error responses: 400 if fields missing, email already taken, or other failure
+//
+// Note (Express 5): async route handlers automatically forward thrown/rejected errors
+// to Express's error handler, but we still use try/catch here for controlled 400 responses.
 router.post('/signup', async (req, res) => {
   try {
     // Destructure email and password from the request body (default to empty object if body is null)
@@ -80,7 +85,7 @@ router.post('/signup', async (req, res) => {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Email already registered' });
 
-    // Hash the plain-text password using bcrypt with the configured salt rounds.
+    // Hash the plain-text password using bcryptjs with the configured salt rounds.
     // This produces a one-way hash that can be verified later but not reversed.
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
 
@@ -115,7 +120,7 @@ router.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
     // Compare the provided plain-text password against the stored bcrypt hash.
-    // bcrypt.compare handles salt extraction and hashing internally.
+    // bcryptjs.compare handles salt extraction and hashing internally.
     const valid = await bcrypt.compare(password, user.password);
 
     // If the password doesn't match, return 401 with a generic message

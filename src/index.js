@@ -1,4 +1,6 @@
-// Import Express, the web framework used to create the HTTP server and define routes
+// Import Express 5, the web framework used to create the HTTP server and define routes.
+// Express 5 includes built-in async error handling — rejected promises in async route handlers
+// are automatically forwarded to the Express error handler without needing explicit try/catch.
 import express from 'express';
 
 // Import CORS middleware to allow cross-origin requests (frontend on a different port/domain)
