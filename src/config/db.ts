@@ -3,13 +3,13 @@ import mongoose from 'mongoose';
 
 /**
  * connectDB - Establishes a connection to the MongoDB database.
- * @param {string} uri - The MongoDB connection string (e.g. from MONGO_URI env variable).
+ * @param uri - The MongoDB connection string (e.g. from MONGO_URI env variable).
  * @throws {Error} If the uri parameter is falsy/missing.
  *
  * This function is called once at application startup to open a persistent
  * connection that Mongoose reuses for all subsequent database operations.
  */
-export const connectDB = async (uri) => {
+export const connectDB = async (uri: string | undefined): Promise<void> => {
   // Guard clause: throw immediately if no connection string was provided
   if (!uri) throw new Error('MONGO_URI is missing');
 
@@ -23,7 +23,7 @@ export const connectDB = async (uri) => {
   } catch (err) {
     // If the connection fails (wrong URI, network issue, auth failure, etc.),
     // log the error message for debugging purposes
-    console.error('❌ MongoDB connection error:', err.message);
+    console.error('❌ MongoDB connection error:', (err as Error).message);
 
     // Exit the process with a failure code (1) because the app cannot
     // function without a database connection
