@@ -43,8 +43,6 @@ build/
 # Environment & Secrets
 # ------------------------------
 # Never commit secrets. Keep example only.
-.env
-.env.*
 !.env.example
 
 # ------------------------------
@@ -94,3 +92,4 @@ appendonly.aof
 # Mailer templates/build (if generated)
 # ------------------------------
 # mail_build/
+config.bat

@@ -1,5 +1,20 @@
 // Import Mongoose to define the schema and create the model
-import mongoose from 'mongoose';
+import mongoose, { Document, Types } from 'mongoose';
+
+/**
+ * IHabit - TypeScript interface representing a Habit document in MongoDB.
+ */
+export interface IHabit extends Document {
+  userId: Types.ObjectId;
+  title: string;
+  description?: string;
+  logs: Date[];
+  createdAt: Date;
+  // Virtual fields
+  todayLogged: boolean;
+  totalLogs: number;
+  currentStreak: number;
+}
 
 /**
  * Habit Schema
@@ -7,7 +22,7 @@ import mongoose from 'mongoose';
  * Each habit tracks its title, optional description, and an array of
  * date-based logs indicating when the habit was completed.
  */
-const habitSchema = new mongoose.Schema(
+const habitSchema = new mongoose.Schema<IHabit>(
   {
     // Reference to the User who owns this habit.
     // - ObjectId: MongoDB's unique identifier type, linking to the 'User' collection.
@@ -46,10 +61,10 @@ const habitSchema = new mongoose.Schema(
 /**
  * toDayStartUTC - Utility function that normalizes a Date to midnight (00:00:00.000) UTC.
  * This allows comparing two dates on a "same calendar day" basis regardless of time.
- * @param {Date} d - The date to normalize. Defaults to the current date/time.
- * @returns {Date} A new Date object set to the start of that UTC day.
+ * @param d - The date to normalize. Defaults to the current date/time.
+ * @returns A new Date object set to the start of that UTC day.
  */
-function toDayStartUTC(d = new Date()) {
+function toDayStartUTC(d: Date = new Date()): Date {
   // Create a copy to avoid mutating the original date
   const dd = new Date(d);
 
@@ -64,7 +79,7 @@ function toDayStartUTC(d = new Date()) {
  * has already been logged/completed for today (UTC).
  * Virtuals are not stored in the database; they are calculated on the fly.
  */
-habitSchema.virtual('todayLogged').get(function () {
+habitSchema.virtual('todayLogged').get(function (this: IHabit) {
   // If there are no logs at all, the habit was not logged today
   if (!this.logs?.length) return false;
 
@@ -81,7 +96,7 @@ habitSchema.virtual('todayLogged').get(function () {
  * A computed property returning the total number of times
  * the habit has been logged/completed (i.e. the length of the logs array).
  */
-habitSchema.virtual('totalLogs').get(function () {
+habitSchema.virtual('totalLogs').get(function (this: IHabit) {
   return this.logs?.length || 0;
 });
 
@@ -95,13 +110,13 @@ habitSchema.virtual('totalLogs').get(function () {
  * - It counts backwards from today, day by day, as long as each
  *   previous day also has a log entry.
  */
-habitSchema.virtual('currentStreak').get(function () {
+habitSchema.virtual('currentStreak').get(function (this: IHabit) {
   // No logs means no streak
   if (!this.logs?.length) return 0;
 
   // Sort logs in descending order (newest first) and normalize each to day-start UTC.
   // .slice() creates a shallow copy so we don't mutate the original array.
-  const sorted = this.logs.slice().sort((a, b) => b - a).map((d) => toDayStartUTC(d).getTime());
+  const sorted = this.logs.slice().sort((a, b) => b.getTime() - a.getTime()).map((d) => toDayStartUTC(d).getTime());
 
   // Remove duplicate days using a Set (in case multiple logs exist for the same day)
   const uniqDays = [...new Set(sorted)];
@@ -109,7 +124,7 @@ habitSchema.virtual('currentStreak').get(function () {
   let streak = 0;
 
   // Get today's date as a UTC-midnight timestamp for comparison
-  let day = toDayStartUTC().getTime();
+  const day = toDayStartUTC().getTime();
 
   // If today is not in the log list, the streak is broken — return 0
   if (!uniqDays.includes(day)) return 0;
@@ -128,4 +143,4 @@ habitSchema.virtual('currentStreak').get(function () {
 
 // Create and export the Mongoose model named 'Habit' based on the habitSchema.
 // This model provides the interface for querying and manipulating the 'habits' collection in MongoDB.
-export default mongoose.model('Habit', habitSchema);
+export default mongoose.model<IHabit>('Habit', habitSchema);
