@@ -2,6 +2,8 @@
 
 This document provides step-by-step instructions for manually testing every API endpoint using **cURL** and **Postman**. Follow the sections in order, as later tests depend on data created in earlier ones.
 
+> **Note:** The backend is written in TypeScript. During development, use `npm run dev` (which runs `tsx watch`) to start the server. For production testing, first build with `npm run build`, then start with `npm start`.
+
 ---
 
 ## Table of Contents
@@ -28,6 +30,11 @@ This document provides step-by-step instructions for manually testing every API 
 1. Make sure the backend is running:
    ```bash
    npm run dev
+   ```
+   Or for production mode:
+   ```bash
+   npm run build
+   npm start
    ```
 2. Confirm the server is up at `http://localhost:4000`.
 3. Have a terminal (for cURL) or Postman ready.
@@ -484,3 +491,8 @@ Use this checklist to track your testing progress:
 - [ ] `currentStreak` is `0` when not logged today
 - [ ] `currentStreak` is `1` after logging only today
 - [ ] `currentStreak` counts consecutive days correctly
+
+### TypeScript Build
+- [ ] `npm run build` compiles without errors
+- [ ] `npm start` runs the compiled output from `dist/`
+- [ ] `npm run dev` starts the development server with `tsx watch`

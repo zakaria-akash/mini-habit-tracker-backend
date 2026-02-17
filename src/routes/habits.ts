@@ -1,5 +1,5 @@
 // Import Express to create a modular, mountable route handler
-import express from 'express';
+import express, { Request, Response } from 'express';
 
 // Import the Habit model to interact with the 'habits' collection in MongoDB
 import Habit from '../models/Habit.js';
@@ -8,16 +8,16 @@ import Habit from '../models/Habit.js';
 import { authRequired } from '../middleware/auth.js';
 
 // Create a new Express Router instance.
-// This router will be mounted at "/habits" in index.js, so all routes here are relative to /habits.
+// This router will be mounted at "/habits" in index.ts, so all routes here are relative to /habits.
 const router = express.Router();
 
 /**
  * toDayStartUTC - Utility function that normalizes a Date to midnight (00:00:00.000) UTC.
  * Used to compare dates on a "same calendar day" basis, ignoring the time component.
- * @param {Date} d - The date to normalize. Defaults to the current date/time.
- * @returns {Date} A new Date object set to the start of that UTC day.
+ * @param d - The date to normalize. Defaults to the current date/time.
+ * @returns A new Date object set to the start of that UTC day.
  */
-function toDayStartUTC(d = new Date()) {
+function toDayStartUTC(d: Date = new Date()): Date {
   // Create a copy so we don't mutate the original date
   const dd = new Date(d);
 
@@ -31,11 +31,11 @@ function toDayStartUTC(d = new Date()) {
 // The response includes Mongoose virtuals (todayLogged, totalLogs, currentStreak)
 // thanks to .lean({ virtuals: true }), which returns plain JS objects with virtuals attached.
 // Results are sorted by creation date in descending order (newest first).
-router.get('/', authRequired, async (req, res) => {
+router.get('/', authRequired, async (req: Request, res: Response) => {
   // Find all habits where userId matches the authenticated user's id.
   // .sort({ createdAt: -1 }) orders results newest-first.
   // .lean({ virtuals: true }) converts Mongoose documents to plain objects while preserving virtual fields.
-  const habits = await Habit.find({ userId: req.user.id }).sort({ createdAt: -1 }).lean({ virtuals: true });
+  const habits = await Habit.find({ userId: req.user!.id }).sort({ createdAt: -1 }).lean({ virtuals: true });
 
   // Return the array of habit objects as JSON
   return res.json(habits);
@@ -46,15 +46,15 @@ router.get('/', authRequired, async (req, res) => {
 // Request body: { title: string, description?: string }
 // Success response: 201 with the created habit object
 // Error response: 400 if title is missing
-router.post('/', authRequired, async (req, res) => {
+router.post('/', authRequired, async (req: Request, res: Response) => {
   // Destructure title and optional description from the request body
-  const { title, description } = req.body || {};
+  const { title, description } = (req.body || {}) as { title?: string; description?: string };
 
   // Title is required — return 400 if missing
   if (!title) return res.status(400).json({ message: 'Title is required' });
 
   // Create a new habit document in MongoDB with the user's id, title, description, and an empty logs array
-  const habit = await Habit.create({ userId: req.user.id, title, description, logs: [] });
+  const habit = await Habit.create({ userId: req.user!.id, title, description, logs: [] });
 
   // Respond with 201 Created and the newly created habit
   return res.status(201).json(habit);
@@ -66,12 +66,12 @@ router.post('/', authRequired, async (req, res) => {
 // URL param: :id = the habit's MongoDB _id
 // Success response: 200 with the updated habit
 // Error responses: 404 if habit not found; 409 if already logged today
-router.post('/:id/log', authRequired, async (req, res) => {
+router.post('/:id/log', authRequired, async (req: Request, res: Response) => {
   // Extract the habit id from the URL parameters
   const { id } = req.params;
 
   // Find the habit by its _id AND the authenticated user's id (ensures ownership)
-  const habit = await Habit.findOne({ _id: id, userId: req.user.id });
+  const habit = await Habit.findOne({ _id: id, userId: req.user!.id });
 
   // If no matching habit found, return 404
   if (!habit) return res.status(404).json({ message: 'Habit not found' });
@@ -100,12 +100,12 @@ router.post('/:id/log', authRequired, async (req, res) => {
 // URL param: :id = the habit's MongoDB _id
 // Success response: 200 with the updated habit
 // Error responses: 404 if habit not found or no log exists for today
-router.post('/:id/unlog', authRequired, async (req, res) => {
+router.post('/:id/unlog', authRequired, async (req: Request, res: Response) => {
   // Extract the habit id from the URL parameters
   const { id } = req.params;
 
   // Find the habit by its _id AND the authenticated user's id (ensures ownership)
-  const habit = await Habit.findOne({ _id: id, userId: req.user.id });
+  const habit = await Habit.findOne({ _id: id, userId: req.user!.id });
 
   // If no matching habit found, return 404
   if (!habit) return res.status(404).json({ message: 'Habit not found' });
@@ -134,13 +134,13 @@ router.post('/:id/unlog', authRequired, async (req, res) => {
 // URL param: :id = the habit's MongoDB _id
 // Success response: 200 { message: 'Deleted' }
 // Error response: 404 if habit not found or doesn't belong to the user
-router.delete('/:id', authRequired, async (req, res) => {
+router.delete('/:id', authRequired, async (req: Request, res: Response) => {
   // Extract the habit id from the URL parameters
   const { id } = req.params;
 
   // Find and delete the habit in a single atomic operation.
   // The userId check ensures a user can only delete their own habits.
-  const deleted = await Habit.findOneAndDelete({ _id: id, userId: req.user.id });
+  const deleted = await Habit.findOneAndDelete({ _id: id, userId: req.user!.id });
 
   // If no document was found and deleted, return 404
   if (!deleted) return res.status(404).json({ message: 'Habit not found' });
@@ -149,5 +149,5 @@ router.delete('/:id', authRequired, async (req, res) => {
   return res.json({ message: 'Deleted' });
 });
 
-// Export the router to be mounted in index.js at the "/habits" path
+// Export the router to be mounted in index.ts at the "/habits" path
 export default router;

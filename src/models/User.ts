@@ -1,12 +1,21 @@
 // Import Mongoose to define the schema and create the model
-import mongoose from 'mongoose';
+import mongoose, { Document } from 'mongoose';
+
+/**
+ * IUser - TypeScript interface representing a User document in MongoDB.
+ */
+export interface IUser extends Document {
+  email: string;
+  password: string;
+  createdAt: Date;
+}
 
 /**
  * User Schema
  * Represents an application user who can register, log in, and own habits.
  * Passwords are stored as hashed strings (hashing is handled at the route/controller level).
  */
-const userSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema<IUser>(
   {
     // The user's email address, used as their unique login identifier.
     // - required: every user must have an email.
@@ -30,4 +39,4 @@ const userSchema = new mongoose.Schema(
 
 // Create and export the Mongoose model named 'User' based on the userSchema.
 // This model provides the interface for querying and manipulating the 'users' collection in MongoDB.
-export default mongoose.model('User', userSchema);
+export default mongoose.model<IUser>('User', userSchema);

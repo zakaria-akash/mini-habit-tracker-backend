@@ -1,5 +1,5 @@
 // Import Express to create a modular, mountable route handler
-import express from 'express';
+import express, { Request, Response } from 'express';
 
 // Import bcryptjs for hashing and comparing passwords securely.
 // bcryptjs is a pure JavaScript implementation of bcrypt (no native C++ compilation required),
@@ -10,10 +10,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 // Import the User model to interact with the 'users' collection in MongoDB
-import User from '../models/User.js';
+import User, { IUser } from '../models/User.js';
 
 // Create a new Express Router instance.
-// This router will be mounted at "/auth" in index.js, so all routes here are relative to /auth.
+// This router will be mounted at "/auth" in index.ts, so all routes here are relative to /auth.
 const router = express.Router();
 
 // Number of salt rounds for bcrypt hashing.
@@ -25,25 +25,25 @@ const TOKEN_TTL = '24h';
 
 /**
  * signToken - Creates a signed JWT for an authenticated user.
- * @param {Object} user - The Mongoose user document.
- * @returns {string} A signed JWT string.
+ * @param user - The Mongoose user document.
+ * @returns A signed JWT string.
  *
  * The token payload contains:
  *   - sub: the user's MongoDB _id (standard JWT "subject" claim)
  *   - email: the user's email address
  * The token is signed with the JWT_SECRET from environment variables and expires after TOKEN_TTL.
  */
-function signToken(user) {
+function signToken(user: IUser): string {
   return jwt.sign(
-    { sub: user._id.toString(), email: user.email },
-    process.env.JWT_SECRET,
+    { sub: user._id!.toString(), email: user.email },
+    process.env.JWT_SECRET!,
     { expiresIn: TOKEN_TTL }
   );
 }
 
 /**
  * cookieOptions - Returns configuration options for the httpOnly auth cookie.
- * @returns {Object} Cookie settings object.
+ * @returns Cookie settings object.
  *
  * In production:
  *   - secure: true (cookie only sent over HTTPS)
@@ -55,14 +55,25 @@ function signToken(user) {
  * maxAge: cookie lifetime in milliseconds (24 hours = 86,400,000 ms), matching the JWT TTL.
  * httpOnly: true prevents JavaScript on the client from accessing the cookie (XSS protection).
  */
-function cookieOptions() {
+function cookieOptions(): { httpOnly: boolean; secure: boolean; sameSite: 'none' | 'lax'; maxAge: number; path: string } {
   const isProd = process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
-    maxAge: 24 * 60 * 60 * 1000
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/'
   };
+}
+
+/**
+ * JWT payload shape used for verifying tokens in the /me endpoint.
+ */
+interface AppJwtPayload {
+  sub: string;
+  email: string;
+  iat: number;
+  exp: number;
 }
 
 // ─── POST /auth/signup ──────────────────────────────────────────────────────────
@@ -73,10 +84,10 @@ function cookieOptions() {
 //
 // Note (Express 5): async route handlers automatically forward thrown/rejected errors
 // to Express's error handler, but we still use try/catch here for controlled 400 responses.
-router.post('/signup', async (req, res) => {
+router.post('/signup', async (req: Request, res: Response) => {
   try {
     // Destructure email and password from the request body (default to empty object if body is null)
-    const { email, password } = (req.body || {});
+    const { email, password } = (req.body || {}) as { email?: string; password?: string };
 
     // Validate that both fields are provided
     if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
@@ -90,11 +101,11 @@ router.post('/signup', async (req, res) => {
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
 
     // Create the new user document in MongoDB with the email and hashed password
-    const user = await User.create({ email, password: hashed });
+    await User.create({ email, password: hashed });
 
     // Respond with 201 Created (no token returned — user must log in separately)
     return res.status(201).json({ message: 'User created' });
-  } catch (err) {
+  } catch {
     // Catch any unexpected errors (e.g. validation errors, DB issues) and return 400
     return res.status(400).json({ message: 'Signup failed' });
   }
@@ -105,10 +116,10 @@ router.post('/signup', async (req, res) => {
 // Request body: { email: string, password: string }
 // Success response: 200 { token: string } + sets httpOnly "token" cookie
 // Error responses: 400 if fields missing; 401 if credentials are invalid
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     // Destructure email and password from the request body
-    const { email, password } = (req.body || {});
+    const { email, password } = (req.body || {}) as { email?: string; password?: string };
 
     // Validate that both fields are provided
     if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
@@ -134,7 +145,7 @@ router.post('/login', async (req, res) => {
 
     // Also return the token in the JSON response body (for non-browser clients or manual usage)
     return res.json({ token });
-  } catch (err) {
+  } catch {
     // Catch any unexpected errors and return 400
     return res.status(400).json({ message: 'Login failed' });
   }
@@ -144,7 +155,7 @@ router.post('/login', async (req, res) => {
 // Logs the user out by clearing the authentication cookie.
 // No request body needed.
 // Success response: 200 { message: 'Logged out' }
-router.post('/logout', (req, res) => {
+router.post('/logout', (_req: Request, res: Response) => {
   // Clear the "token" cookie by setting the same options but with maxAge: 0,
   // which tells the browser to immediately expire/delete the cookie.
   res.clearCookie('token', { ...cookieOptions(), maxAge: 0 });
@@ -159,7 +170,7 @@ router.post('/logout', (req, res) => {
 // Token source: Authorization header ("Bearer <token>") or httpOnly cookie.
 // Success response: 200 { id: string, email: string }
 // Error response: 401 if no valid token
-router.get('/me', (req, res) => {
+router.get('/me', (req: Request, res: Response) => {
   try {
     // Read the Authorization header (empty string fallback if not set)
     const authHeader = req.get('Authorization') || '';
@@ -168,7 +179,7 @@ router.get('/me', (req, res) => {
     const headerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
 
     // Fallback: try to read the token from the httpOnly cookie
-    const cookieToken = req.cookies?.token;
+    const cookieToken = req.cookies?.token as string | undefined;
 
     // Use whichever token source is available (header takes priority)
     const token = headerToken || cookieToken;
@@ -177,7 +188,7 @@ router.get('/me', (req, res) => {
     if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
     // Verify and decode the JWT. Throws if expired or invalid.
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as AppJwtPayload;
 
     // Return the user's id and email extracted from the token payload
     return res.json({ id: payload.sub, email: payload.email });
@@ -187,5 +198,5 @@ router.get('/me', (req, res) => {
   }
 });
 
-// Export the router to be mounted in index.js at the "/auth" path
+// Export the router to be mounted in index.ts at the "/auth" path
 export default router;
